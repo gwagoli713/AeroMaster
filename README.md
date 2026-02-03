@@ -1,6 +1,311 @@
-[admin.html](https://github.com/user-attachments/files/25051194/admin.html)
-[index.html](https://github.com/user-attachments/files/25051195/index.html)[questions.js](https://github.com/user-attachments/files/25051196/questions.js)
-[questions.js](https://github.com/user-attachments/files/25051200/questions.js)
+
+[index.html](https://github.com/user-attachments/files/25051302/index.html)
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>AERO MASTER PRO - Pilot Registration</title>
+    <style>
+        /* 기존 스타일 유지 및 닉네임 입력창 스타일 추가 */
+        :root { --primary: #64ffda; --bg: #0b192e; --card: #112240; --text: #e6f1ff; --danger: #e74c3c; --warning: #f1c40f; --accent: #e67e22; }
+        body { font-family: 'Malgun Gothic', sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        header { display: flex; justify-content: space-between; align-items: center; padding: 15px 30px; background: rgba(17, 34, 64, 0.9); border-bottom: 2px solid var(--primary); }
+        .logo { font-size: 24px; font-weight: 900; color: var(--primary); letter-spacing: 2px; }
+        .lang-switch { cursor: pointer; padding: 5px 15px; border: 1px solid var(--primary); border-radius: 20px; font-size: 12px; }
+        main { display: flex; flex: 1; padding: 15px; gap: 15px; overflow: hidden; }
+        .side-panel { flex: 1; background: var(--card); border-radius: 12px; border: 1px solid #233554; display: flex; flex-direction: column; }
+        .panel-header { padding: 10px; background: rgba(100,255,218,0.1); font-weight: bold; color: var(--primary); text-align: center; font-size: 14px; }
+        .scroll-content { flex: 1; overflow-y: auto; padding: 10px; font-size: 13px; }
+        .game-center { flex: 2.5; display: flex; flex-direction: column; align-items: center; }
+        .container { background: var(--card); padding: 25px; border-radius: 20px; width: 95%; border: 1px solid #233554; box-shadow: 0 15px 40px rgba(0,0,0,0.5); text-align: center; position: relative; }
+        .screen { display: none; }
+        .active { display: block; }
+        .btn { padding: 10px; border: 1px solid var(--primary); background: transparent; color: var(--primary); border-radius: 6px; cursor: pointer; font-weight: bold; margin: 5px; transition: 0.2s; }
+        .btn:hover, .btn.selected { background: var(--primary); color: var(--bg); }
+        .option-btn { display: block; width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #233554; background: #1d2d50; color: white; border-radius: 8px; cursor: pointer; text-align: left; }
+        .option-btn.correct { background: #2ecc71 !important; border-color: #27ae60; }
+        .option-btn.wrong { background: var(--danger) !important; border-color: #c0392b; }
+        .timer-container { width: 100%; height: 8px; background: #233554; border-radius: 4px; margin: 10px 0; overflow: hidden; }
+        #timer-bar { width: 100%; height: 100%; background: var(--primary); transition: width 0.1s linear; }
+        input[type="text"], input[type="password"] { background: #112240; color: white; border: 1px solid #233554; padding: 8px; border-radius: 5px; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo">🚀 AERO MASTER PRO</div>
+        <div class="lang-switch" onclick="toggleLang()">🌐 <span id="lang-text">KOREAN</span></div>
+    </header>
+
+    <main>
+        <section class="side-panel">
+            <div class="panel-header" data-ko="항공 용어 사전" data-en="Aviation Glossary">항공 용어 사전</div>
+            <div class="scroll-content" id="glossary"></div>
+        </section>
+
+        <section class="game-center">
+            <div class="container" id="game-container">
+                
+                <div id="login-screen" class="screen active">
+                    <h2 data-ko="조종사 등록" data-en="Pilot Registration">조종사 등록</h2>
+                    <p data-ko="호출 부호(닉네임)를 입력하세요" data-en="Enter your Callsign (Nickname)">호출 부호(닉네임)를 입력하세요</p>
+                    <input type="text" id="nickname-input" placeholder="Callsign..." style="width:80%; font-size:18px; text-align:center; margin-bottom:20px;">
+                    <button class="btn" style="width:80%; background:var(--primary); color:var(--bg);" onclick="saveNickname()" data-ko="등록 및 입장" data-en="Register & Enter">등록 및 입장</button>
+                </div>
+
+                <div id="setup-screen" class="screen">
+                    <h2 id="welcome-msg">Welcome, Pilot</h2>
+                    <p id="best-display" style="color:var(--warning)">Best: 0</p>
+                    <div style="margin-bottom:15px;">
+                        <button class="btn" onclick="setDiff('easy', this)">Easy</button>
+                        <button class="btn" onclick="setDiff('medium', this)">Medium</button>
+                        <button class="btn" onclick="setDiff('hard', this)">Hard</button>
+                    </div>
+                    <button class="btn" style="width:100%; background:var(--primary); color:var(--bg);" onclick="startQuiz('normal')" data-ko="미션 시작" data-en="Start Mission">미션 시작</button>
+                    <button class="btn" style="width:100%; border-color:var(--accent); color:var(--accent);" onclick="startQuiz('timeattack')" data-ko="🔥 타임어택 (30초)" data-en="🔥 Time Attack">🔥 타임어택</button>
+                    
+                    <div style="margin-top:20px; text-align:left; border-top:1px solid #233554; padding-top:10px;">
+                        <input type="text" id="f-input" placeholder="Feedback..." style="width:70%;">
+                        <button class="btn" style="padding:4px 10px;" onclick="saveComment()">Save</button>
+                    </div>
+
+                    <div style="margin-top:15px; font-size:9px; opacity:0.2;">
+                        <span onclick="document.getElementById('admin-zone').style.display='block'" style="cursor:pointer">Admin</span>
+                        <div id="admin-zone" style="display:none;">
+                            <input type="text" id="aid" style="width:40px;"> <input type="password" id="apw" style="width:40px;">
+                            <button onclick="checkAdmin()">OK</button>
+                            <button id="admin-btn" style="display:none;" onclick="location.href='admin.html'">Manage</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="quiz-screen" class="screen">
+                    <div style="display:flex; justify-content: space-between;">
+                        <div id="combo-ui" style="color:var(--warning); font-weight:bold;"></div>
+                        <div id="progress-ui" style="color:var(--primary)"></div>
+                    </div>
+                    <div class="timer-container"><div id="timer-bar"></div></div>
+                    <div id="event-msg" style="color:var(--danger); font-size:12px; height:15px;"></div>
+                    <h3 id="q-text" style="min-height:60px;"></h3>
+                    <div id="options-area"></div>
+                </div>
+
+                <div id="result-screen" class="screen">
+                    <h2 data-ko="비행 종료" data-en="Flight Ended">비행 종료</h2>
+                    <div id="res-score" style="font-size:32px; color:var(--primary); font-weight:bold;"></div>
+                    <div id="res-notes" style="text-align:left; font-size:12px; background:#0a101e; padding:10px; height:100px; overflow-y:auto; margin:10px 0;"></div>
+                    <button class="btn" style="width:100%" onclick="location.reload()">Return</button>
+                </div>
+            </div>
+        </section>
+
+        <section class="side-panel">
+            <div class="panel-header" data-ko="명예의 전당 & 피드백" data-en="Hall of Fame & Feed">명예의 전당 & 피드백</div>
+            <div class="scroll-content">
+                <div id="ranking-list"></div>
+                <hr style="border:0; border-top:1px solid #233554; margin:15px 0;">
+                <div id="comment-list"></div>
+            </div>
+        </section>
+    </main>
+
+    <audio id="s-ok" src="https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3"></audio>
+    <audio id="s-no" src="https://assets.mixkit.co/active_storage/sfx/951/951-preview.mp3"></audio>
+
+    <script src="questions.js"></script>
+    <script>
+        let curLang='ko', mode='normal', diff='easy', idx=0, score=0, combo=0, timer, timeLeft=15;
+        let currentQuiz=[], wrongList=[], pilotName = "";
+
+        const dict = [
+            {ko:"V1", en:"V1", d_ko:"이륙 결심 속도", d_en:"Take-off decision speed"},
+            {ko:"ATC", en:"ATC", d_ko:"항공 교통 관제", d_en:"Air Traffic Control"},
+            {ko:"Stall", en:"Stall", d_ko:"실속 (양력 상실)", d_en:"Loss of lift"}
+        ];
+
+        window.onload = () => {
+            renderDict(); renderComments(); renderRanks();
+            const savedName = localStorage.getItem('aero_pilot');
+            if(savedName) {
+                pilotName = savedName;
+                showSetup();
+            }
+        };
+
+        // 닉네임 저장 및 화면 전환
+        function saveNickname() {
+            const input = document.getElementById('nickname-input').value;
+            if(!input) return alert("Callsign을 입력하세요!");
+            pilotName = input;
+            localStorage.setItem('aero_pilot', pilotName);
+            showSetup();
+        }
+
+        function showSetup() {
+            document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+            document.getElementById('setup-screen').classList.add('active');
+            document.getElementById('welcome-msg').innerText = `Welcome, Pilot ${pilotName}`;
+            document.getElementById('best-display').innerText = `Best: ${localStorage.getItem('aero_top') || 0}`;
+            renderRanks();
+        }
+
+        function toggleLang() { curLang = curLang==='ko'?'en':'ko'; document.getElementById('lang-text').innerText=curLang.toUpperCase(); renderDict(); updateUI(); }
+        function updateUI() { document.querySelectorAll('[data-ko]').forEach(el=> el.innerText = el.getAttribute('data-'+curLang)); }
+        function renderDict() { document.getElementById('glossary').innerHTML = dict.map(i=> `<div style="margin-bottom:10px;"><b>${i[curLang]}</b>: ${i['d_'+curLang]}</div>`).join(''); }
+
+        function checkAdmin() {
+            if(document.getElementById('aid').value==='tremill0103' && document.getElementById('apw').value==='tt0104tt!') {
+                document.getElementById('admin-btn').style.display='inline-block';
+            }
+        }
+
+        function setDiff(d, b) { diff=d; timeLeft = (d==='easy'?15:(d==='medium'?10:7)); document.querySelectorAll('.btn').forEach(btn=>btn.classList.remove('selected')); b.classList.add('selected'); }
+
+        function startQuiz(m) {
+            mode=m; score=0; idx=0; combo=0; wrongList=[];
+            let pool = (mode==='normal') ? quizData[diff] : [...quizData.easy, ...quizData.medium, ...quizData.hard];
+            currentQuiz = [...pool].sort(()=>Math.random()-0.5);
+            if(mode==='normal') currentQuiz = currentQuiz.slice(0, 10);
+            document.getElementById('setup-screen').classList.remove('active');
+            document.getElementById('quiz-screen').classList.add('active');
+            loadQ();
+        }
+
+        function loadQ() {
+            if(mode==='normal') clearInterval(timer);
+            const q = currentQuiz[idx];
+            document.getElementById('q-text').innerText = q.q;
+            document.getElementById('progress-ui').innerText = `${idx+1}/${currentQuiz.length}`;
+            let area = document.getElementById('options-area'); area.innerHTML = '';
+            let opts = q.a.map((t, i) => ({t, isC: i===0})).sort(()=>Math.random()-0.5);
+            opts.forEach(o => {
+                let b = document.createElement('button'); b.className = 'option-btn'; b.innerText = o.t;
+                b.onclick = () => handleAnswer(o.isC, b);
+                area.appendChild(b);
+            });
+            if(mode==='normal') {
+                let turb = Math.random() < 0.15;
+                document.getElementById('event-msg').innerText = turb ? "⚠️ TURBULENCE (x2 Speed)" : "";
+                startTimer(turb ? 0.2 : 0.1);
+            } else if(idx===0) { timeLeft=30; startTimer(0.1); }
+        }
+
+        function startTimer(dec) {
+            const bar = document.getElementById('timer-bar');
+            const total = mode==='normal' ? (diff==='easy'?15:(diff==='medium'?10:7)) : 30;
+            timer = setInterval(() => {
+                timeLeft -= dec;
+                bar.style.width = (timeLeft / total) * 100 + '%';
+                if(timeLeft <= 0) { clearInterval(timer); handleAnswer(false, null); }
+            }, 100);
+        }
+
+        function handleAnswer(isC, btn) {
+            if(mode==='normal') clearInterval(timer);
+            document.querySelectorAll('.option-btn').forEach(b=>b.disabled=true);
+            if(isC) {
+                document.getElementById('s-ok').play();
+                if(btn) btn.classList.add('correct');
+                combo++;
+                score += (mode==='normal' ? (diff==='easy'?10:30)+combo : 1);
+                document.getElementById('combo-ui').innerText = combo + " COMBO";
+            } else {
+                document.getElementById('s-no').play();
+                document.getElementById('game-container').classList.add('shake');
+                setTimeout(()=>document.getElementById('game-container').classList.remove('shake'), 500);
+                if(btn) btn.classList.add('wrong');
+                wrongList.push({q:currentQuiz[idx].q, a:currentQuiz[idx].a[0]});
+                combo=0; document.getElementById('combo-ui').innerText = '';
+                document.querySelectorAll('.option-btn').forEach(b=>{ if(b.innerText === currentQuiz[idx].a[0]) b.classList.add('correct'); });
+            }
+            setTimeout(() => {
+                idx++;
+                if(idx < currentQuiz.length && (mode==='normal' || timeLeft > 0)) loadQ();
+                else showResult();
+            }, 1200);
+        }
+
+        function showResult() {
+            clearInterval(timer);
+            document.getElementById('quiz-screen').classList.remove('active');
+            document.getElementById('result-screen').classList.add('active');
+            const top = localStorage.getItem('aero_top') || 0;
+            if(score > top) localStorage.setItem('aero_top', score);
+            document.getElementById('res-score').innerText = score + " PTS";
+            renderRanks();
+            const resNotes = document.getElementById('res-notes');
+            resNotes.innerHTML = wrongList.length ? "<b>[Blackbox Record]</b><br>" : "Perfect Flight!";
+            wrongList.forEach(w => resNotes.innerHTML += `Q: ${w.q}<br><span style="color:var(--primary)">A: ${w.a}</span><br>`);
+        }
+
+        function saveComment() {
+            const val = document.getElementById('f-input').value; if(!val) return;
+            const cms = JSON.parse(localStorage.getItem('aero_cms') || '[]');
+            cms.unshift({name: pilotName, txt: val, date: new Date().toLocaleDateString()});
+            localStorage.setItem('aero_cms', JSON.stringify(cms));
+            document.getElementById('f-input').value=''; renderComments();
+        }
+        function renderComments() {
+            const cms = JSON.parse(localStorage.getItem('aero_cms') || '[]');
+            document.getElementById('comment-list').innerHTML = "<b>Recent Feed</b><br>" + cms.map(c=>`<div style="font-size:11px; margin-top:5px; border-bottom:1px solid #233554;"><b>${c.name}</b>: ${c.txt}</div>`).join('');
+        }
+        function renderRanks() {
+            const myBest = localStorage.getItem('aero_top') || 0;
+            document.getElementById('ranking-list').innerHTML = `<b>Hall of Fame</b><br><div style='font-size:11px; color:var(--primary); margin-top:5px;'>1. ${pilotName || 'Pilot'}: ${myBest} PTS</div><div style='font-size:10px; opacity:0.4;'>2. Pilot_Alpha: 1200<br>3. Sky_Walker: 850</div>`;
+        }
+    </script>
+</body>
+</html>[admin.html](https://github.com/user-attachments/files/25051303/admin.html)
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>문제 관리자</title>
+    <style>
+        body { background: #0b192e; color: white; padding: 50px; font-family: sans-serif; }
+        .box { background: #112240; padding: 20px; border-radius: 10px; max-width: 600px; margin: auto; }
+        input, select, textarea { width: 100%; margin: 10px 0; padding: 10px; border-radius: 5px; border: none; }
+        .save-btn { background: #64ffda; color: #0b192e; padding: 15px; width: 100%; font-weight: bold; cursor: pointer; border: none; }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h2>새 문제 추가</h2>
+        <select id="new-diff">
+            <option value="easy">Easy</option>
+            <option value="medium">Medium</option>
+            <option value="hard">Hard</option>
+        </select>
+        <input type="text" id="new-q" placeholder="질문을 입력하세요">
+        <input type="text" id="new-a1" placeholder="정답을 입력하세요 (첫번째 항목이 항상 정답)">
+        <input type="text" id="new-a2" placeholder="오답 1">
+        <input type="text" id="new-a3" placeholder="오답 2">
+        <input type="text" id="new-a4" placeholder="오답 3">
+        <input type="text" id="new-tag" placeholder="태그 (예: Engineering)">
+        <button class="save-btn" onclick="exportJS()">JS 코드로 추출하기</button>
+        <p style="font-size: 11px; color: #8892b0; margin-top: 10px;">* 웹 브라우저 보안 정책상 실제 questions.js 파일을 직접 수정하려면 서버 환경이 필요합니다. 아래 버튼을 누르면 추가된 코드가 복사됩니다.</p>
+        <textarea id="result-area" rows="10" style="display:none;"></textarea>
+    </div>
+
+    <script>
+        function exportJS() {
+            const q = document.getElementById('new-q').value;
+            const a1 = document.getElementById('new-a1').value;
+            const a2 = document.getElementById('new-a2').value;
+            const a3 = document.getElementById('new-a3').value;
+            const a4 = document.getElementById('new-a4').value;
+            const tag = document.getElementById('new-tag').value;
+            
+            const code = `{q: "${q}", a: ["${a1}", "${a2}", "${a3}", "${a4}"], tag: "${tag}"},`;
+            
+            const area = document.getElementById('result-area');
+            area.style.display = 'block';
+            area.value = code;
+            area.select();
+            alert('코드가 생성되었습니다! 복사해서 questions.js의 해당 난이도 위치에 붙여넣으세요.');
+        }
+    </script>
+</body>[questions.js](https://github.com/user-attachments/files/25051307/questions.js)
 const quizData = {
     easy: [
         // --- 기존 문제 ---
@@ -185,3 +490,4 @@ const quizData = {
         {q: "항공기 항법 중 지상의 여러 무선 기지국 신호를 받아 위치를 결정하는 방식은?", a: ["RNAV(지역 항법)", "INS", "GPS", "VFR"], tag: "Navigation"}
     ]
 };
+</html>
